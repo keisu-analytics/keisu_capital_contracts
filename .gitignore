@@ -10,3 +10,5 @@ out/
 # Dotenv file
 .env
 .idea/
+.vscode/
+node_modules/
