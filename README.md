@@ -1,4 +1,4 @@
-# Keisu Capital contracts
+# Keisu Capital Contracts
 
 Contracts used in the Keisu Capital custody system.
 
