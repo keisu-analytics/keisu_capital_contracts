@@ -5,6 +5,8 @@ Contracts used in the Keisu Capital custody system.
 ## Contracts
 
 ```ml
+factory
+├── OrgValidatorCoreFactory — "Factory for OrgValidatorCore (using TransparentStaticProxy)"
 proxy
 ├─ TransparentStaticProxy — "Simple, non-upgradeable transparent proxy"
 core
