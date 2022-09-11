@@ -5,8 +5,7 @@ import "openzeppelin-contracts/contracts/utils/StorageSlot.sol";
 
 contract TransparentStaticProxy is Proxy {
     //avoid collisions with implementation storage
-    bytes32 internal constant IMPLSLOT =
-        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+    bytes32 internal constant IMPLSLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     constructor(address _impl) payable {
         StorageSlot.getAddressSlot(IMPLSLOT).value = _impl;
