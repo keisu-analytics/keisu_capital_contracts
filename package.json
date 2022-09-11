@@ -7,7 +7,7 @@
     "solhint-plugin-prettier": "^0.0.5"
   },
   "scripts": {
-    "prettier:solidity": "prettier --write src/**/*.sol"
+    "prettier:solidity": "prettier --write src/**/*.sol && prettier --write test/**/*.sol && prettier --write script/**/*.sol"
   },
   "husky": {
     "hooks": {
