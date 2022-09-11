@@ -7,4 +7,6 @@ Contracts used in the Keisu Capital custody system.
 ```ml
 proxy
 ├─ TransparentStaticProxy — "Simple, non-upgradeable transparent proxy"
+core
+├─ OrgValidatorCore — "parent registry for an org that validates authorizations from child safe contracts"
 ```
