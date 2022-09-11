@@ -50,6 +50,7 @@ contract OrgValidatorCore {
     error invalidRole();
     error policyNotMet(uint256 role);
     error insufficientConfirmations();
+
     //DO NOT override roles 0-1 or funds will be locked forever
     //there is validation for this to prevent attacks in editing functions after this
     function initialize(
@@ -150,9 +151,7 @@ contract OrgValidatorCore {
     }
 
     //this function returns nothing. the safe contract should revert passing through the error if a call to this function fails
-    function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures)
-        internal
-    {
+    function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
