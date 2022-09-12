@@ -100,7 +100,7 @@ contract OrgValidatorCore {
         //loop through signatures and load into confirmationCounts
         for (uint256 i = 0; i < signatures.length; ++i) {
             //try to find existing role in confirmationCounts, if not just put it at the end
-            uint256 confirmationCountIndex = confirmationCounts.length;
+            uint256 confirmationCountIndex = confirmationCounts.length - 1;
             for (uint256 j = 0; j < confirmationCounts.length; ++j) {
                 if (confirmationCounts[j].role == signatures[i].actingRole) {
                     confirmationCountIndex = j;
@@ -150,7 +150,6 @@ contract OrgValidatorCore {
         revert insufficientConfirmations();
     }
 
-    //this function returns nothing. the safe contract should revert passing through the error if a call to this function fails
     function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
             //validate and recover addresses from signatures
