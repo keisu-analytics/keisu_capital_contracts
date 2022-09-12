@@ -189,4 +189,9 @@ contract OrgValidatorCore {
             validatePermissionsOrg(getRoleCounts(signatures));
         }
     }
+
+    function editMembership(Membership[] memory changes, Signature[] memory signatures) public {
+        validateAuthorizationMembership(changes, signatures);
+        modifyRoleMembership(changes);
+    }
 }
