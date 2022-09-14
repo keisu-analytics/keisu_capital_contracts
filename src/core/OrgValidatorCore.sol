@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
-
+import "forge-std/console2.sol";
 contract OrgValidatorCore {
     struct Signature {
         uint256 actingRole;
@@ -20,6 +20,11 @@ contract OrgValidatorCore {
         uint128 requiredConfirmations;
     }
 
+    struct PolicyChange {
+        uint64 index;
+        uint64 role;
+        uint64 requiredConfirmations;
+    }
     struct Membership {
         address member;
         uint256 role;
@@ -88,6 +93,21 @@ contract OrgValidatorCore {
         }
     }
 
+    function modifyPermissions(Permission[] memory changes) internal {
+        for (uint256 i = 0; i < changes.length; ++i) {
+            orgPermissions[changes[i].role] = changes[i].confirmations;
+        }
+    }
+
+    function modifyPolicies (PolicyChange[] memory changes) internal {
+        for (uint256 i = 0; i < changes.length; ++i) {
+            orgPolicies[changes[i].index].role = changes[i].role;
+            orgPolicies[changes[i].index].requiredConfirmations = changes[i].requiredConfirmations;
+        }
+    }
+
+
+
     function isMember(uint256 _role, address _member) public view returns (bool) {
         return roleMemberships[_role][_member];
     }
@@ -149,12 +169,76 @@ contract OrgValidatorCore {
         }
         revert insufficientConfirmations();
     }
+    function recoverPermit(bytes memory changes, string memory methodString, Signature memory signature) internal returns (address) {
+        return (
+        ecrecover(
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    domainSeperator,
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                bytes(methodString)
+                            ),
+                            address(this),
+                            changes,
+                            signature.actingRole,
+                            signature.signer,
+                            nonces[signature.signer]++
+                        )
+                    )
+                )
+            ),
+            signature.v,
+            signature.r,
+            signature.s
+        )
+    );       
+    }
 
     function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                address recoveredAddress = (
+                console2.logBytes(abi.encode(
+                            keccak256(
+                                bytes("authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)")
+                            ),
+                            address(this),
+                            changes,
+                            signatures[i].actingRole,
+                            signatures[i].signer,
+                            nonces[signatures[i].signer]++
+                        ));
+                console2.logBytes(abi.encode(
+                            keccak256(
+                                bytes("authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)")
+                            ),
+                            address(this),
+                            abi.encode(changes),
+                            signatures[i].actingRole,
+                            signatures[i].signer,
+                            nonces[signatures[i].signer]++
+                        ));
+                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
+                //check if recovered address is a member of the role that signed
+                if (recoveredAddress != signatures[i].signer) {
+                    revert invalidSignature();
+                }
+                if (!isMember(signatures[i].actingRole, signatures[i].signer)) {
+                    revert invalidRole();
+                }
+            }
+            validatePermissionsOrg(getRoleCounts(signatures));
+        }
+    }
+
+    function validateAuthorizationPermission(Permission[] memory changes, Signature[] memory signatures) internal {
+        unchecked {
+            //validate and recover addresses from signatures
+            for (uint256 i = 0; i < signatures.length; ++i) {
+                address recoveredAddress = 
                     ecrecover(
                         keccak256(
                             abi.encodePacked(
@@ -163,7 +247,7 @@ contract OrgValidatorCore {
                                 keccak256(
                                     abi.encode(
                                         keccak256(
-                                            "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                                            "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)"
                                         ),
                                         address(this),
                                         changes,
@@ -177,8 +261,7 @@ contract OrgValidatorCore {
                         signatures[i].v,
                         signatures[i].r,
                         signatures[i].s
-                    )
-                );
+                    );
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
                 }
@@ -188,10 +271,55 @@ contract OrgValidatorCore {
             }
             validatePermissionsOrg(getRoleCounts(signatures));
         }
+    }    
+
+    function validateAuthorizationPolicy(PolicyChange[] memory changes, Signature[] memory signatures) public {
+        unchecked {
+            //validate and recover addresses from signatures
+            for (uint256 i = 0; i < signatures.length; ++i) {
+                address recoveredAddress = 
+                    ecrecover(
+                        keccak256(
+                            abi.encodePacked(
+                                "\x19\x01",
+                                domainSeperator,
+                                keccak256(
+                                    abi.encode(
+                                        keccak256(
+                                            "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                                        ),
+                                        address(this),
+                                        changes,
+                                        signatures[i].actingRole,
+                                        signatures[i].signer,
+                                        nonces[signatures[i].signer]++
+                                    )
+                                )
+                            )
+                        ),
+                        signatures[i].v,
+                        signatures[i].r,
+                        signatures[i].s
+                    );
+                if (recoveredAddress != signatures[i].signer) {
+                    revert invalidSignature();
+                }
+                if (!isMember(signatures[i].actingRole, signatures[i].signer)) {
+                    revert invalidRole();
+                }
+            }
+            validatePermissionsOrg(getRoleCounts(signatures));
+        }
+
     }
 
     function editMembership(Membership[] memory changes, Signature[] memory signatures) public {
         validateAuthorizationMembership(changes, signatures);
         modifyRoleMembership(changes);
+    }
+
+    function editPermission(Permission[] memory changes, Signature[] memory signatures) public {
+        validateAuthorizationPermission(changes, signatures);
+        modifyPermissions(changes);
     }
 }

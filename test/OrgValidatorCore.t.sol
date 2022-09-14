@@ -57,6 +57,31 @@ contract OrgValidatorCoreTest is Test {
             );
     }
 
+    function getMessagePermission(
+        OrgValidatorCore.Permission[] memory changes,
+        uint256 privateKey,
+        uint256 role
+    ) public returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    validator.domainSeperator(),
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                            ),
+                            address(validator),
+                            changes,
+                            uint256(role),
+                            vm.addr(privateKey),
+                            validator.nonces(vm.addr(privateKey))
+                        )
+                    )
+                )
+            );
+    }
     function testSanity() public {
         assertEq(validator.orgName(), "OrgName");
     }
@@ -82,5 +107,27 @@ contract OrgValidatorCoreTest is Test {
         }
         validator.editMembership(changes, signatures);
         assertEq(validator.roleMemberships(100000, vm.addr(100000)), true);
+    }
+
+    function test1of1PermissionEdit() public {
+        OrgValidatorCore.Permission[] memory changes = new OrgValidatorCore.Permission[](1);
+        changes[0] = OrgValidatorCore.Permission(100000, 1);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, getMessagePermission(changes, 1, 2));
+        signatures[0] = OrgValidatorCore.Signature(2, vm.addr(1), v, r, s);
+        validator.editPermission(changes, signatures);
+        assertEq(validator.orgPermissions(100000), 1);
+    }
+
+    function test4of4PermissionEdit() public {
+        OrgValidatorCore.Permission[] memory changes = new OrgValidatorCore.Permission[](1);
+        changes[0] = OrgValidatorCore.Permission(100000, 1);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessagePermission(changes, i + 7, 5));
+            signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
+        }        
+        validator.editPermission(changes, signatures);
+        assertEq(validator.orgPermissions(100000), 1);        
     }
 }
