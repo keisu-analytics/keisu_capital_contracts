@@ -31,6 +31,32 @@ contract OrgValidatorCoreTest is Test {
         validator = OrgValidatorCore(factory.createOrgValidatorCore(memberships, permissions, "OrgName"));
     }
 
+    function getMessageMembership(
+        OrgValidatorCore.Membership[] memory changes,
+        uint256 privateKey,
+        uint256 role
+    ) public returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    validator.domainSeperator(),
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                            ),
+                            address(validator),
+                            changes,
+                            uint256(role),
+                            vm.addr(privateKey),
+                            validator.nonces(vm.addr(privateKey))
+                        )
+                    )
+                )
+            );
+    }
+
     function testSanity() public {
         assertEq(validator.orgName(), "OrgName");
     }
@@ -40,25 +66,7 @@ contract OrgValidatorCoreTest is Test {
         changes[0] = OrgValidatorCore.Membership(vm.addr(100000), 100000);
         OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](1);
 
-        bytes32 message = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                validator.domainSeperator(),
-                keccak256(
-                    abi.encode(
-                        keccak256(
-                            "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)"
-                        ),
-                        address(validator),
-                        changes,
-                        uint256(2),
-                        vm.addr(1),
-                        uint256(0)
-                    )
-                )
-            )
-        );
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, message);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, getMessageMembership(changes, 1, 2));
         signatures[0] = OrgValidatorCore.Signature(2, vm.addr(1), v, r, s);
         validator.editMembership(changes, signatures);
         assertEq(validator.roleMemberships(100000, vm.addr(100000)), true);
