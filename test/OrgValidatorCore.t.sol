@@ -71,4 +71,16 @@ contract OrgValidatorCoreTest is Test {
         validator.editMembership(changes, signatures);
         assertEq(validator.roleMemberships(100000, vm.addr(100000)), true);
     }
+
+    function test4of4MembershipEdit() public {
+        OrgValidatorCore.Membership[] memory changes = new OrgValidatorCore.Membership[](1);
+        changes[0] = OrgValidatorCore.Membership(vm.addr(100000), 100000);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessageMembership(changes, i + 7, 5));
+            signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
+        }
+        validator.editMembership(changes, signatures);
+        assertEq(validator.roleMemberships(100000, vm.addr(100000)), true);
+    }
 }
