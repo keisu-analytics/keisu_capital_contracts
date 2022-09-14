@@ -13,11 +13,11 @@ contract OrgValidatorCoreTest is Test {
         factory = new OrgValidatorCoreFactory();
         OrgValidatorCore.Membership[] memory memberships = new OrgValidatorCore.Membership[](10);
         OrgValidatorCore.Permission[] memory permissions = new OrgValidatorCore.Permission[](4);
-        uint256 k = 0;
+        uint256 k = 1;
         for (uint256 i = 0; i < 4; i++) {
             permissions[i] = OrgValidatorCore.Permission(uint128(i + 2), uint128(i + 1));
             for (uint256 j = 0; j < i + 1; j++) {
-                memberships[k] = OrgValidatorCore.Membership(vm.addr(j + 1), i + 2);
+                memberships[k - 1] = OrgValidatorCore.Membership(vm.addr(k), i + 2);
                 k++;
             }
         }
