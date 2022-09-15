@@ -47,7 +47,7 @@ contract OrgValidatorCoreTest is Test {
                                 "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)"
                             ),
                             address(validator),
-                            changes,
+                            abi.encode(changes),
                             uint256(role),
                             vm.addr(privateKey),
                             validator.nonces(vm.addr(privateKey))
@@ -73,7 +73,33 @@ contract OrgValidatorCoreTest is Test {
                                 "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)"
                             ),
                             address(validator),
-                            changes,
+                            abi.encode(changes),
+                            uint256(role),
+                            vm.addr(privateKey),
+                            validator.nonces(vm.addr(privateKey))
+                        )
+                    )
+                )
+            );
+    }
+
+    function getMessagePolicy(
+        OrgValidatorCore.PolicyChange[] memory changes,
+        uint256 privateKey,
+        uint256 role
+    ) public returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    validator.domainSeperator(),
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                            ),
+                            address(validator),
+                            abi.encode(changes),
                             uint256(role),
                             vm.addr(privateKey),
                             validator.nonces(vm.addr(privateKey))
@@ -129,5 +155,17 @@ contract OrgValidatorCoreTest is Test {
         }        
         validator.editPermission(changes, signatures);
         assertEq(validator.orgPermissions(100000), 1);        
+    }
+
+    function test1of1PolicyEdit() public {
+        OrgValidatorCore.PolicyChange[] memory changes = new OrgValidatorCore.PolicyChange[](1);
+        changes[0] = OrgValidatorCore.PolicyChange(0, 100000, 1);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, getMessagePolicy(changes, 1, 2));
+        signatures[0] = OrgValidatorCore.Signature(2, vm.addr(1), v, r, s);
+        validator.editPolicy(changes, signatures);
+        vm.expectRevert(abi.encodeWithSelector(OrgValidatorCore.policyNotMet.selector, 100000));
+        //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
+        OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
     }
 }

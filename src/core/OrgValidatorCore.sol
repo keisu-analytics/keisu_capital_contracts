@@ -93,14 +93,18 @@ contract OrgValidatorCore {
         }
     }
 
-    function modifyPermissions(Permission[] memory changes) internal {
+    function modifyPermissionsOrg(Permission[] memory changes) internal {
         for (uint256 i = 0; i < changes.length; ++i) {
             orgPermissions[changes[i].role] = changes[i].confirmations;
         }
     }
 
-    function modifyPolicies (PolicyChange[] memory changes) internal {
+    function modifyPoliciesOrg (PolicyChange[] memory changes) internal {
         for (uint256 i = 0; i < changes.length; ++i) {
+            //allocate space in array if needed
+            for (uint256 j = orgPolicies.length; j <= changes[i].index; ++j) {
+                orgPolicies.push(Policy(0, 0));
+            }
             orgPolicies[changes[i].index].role = changes[i].role;
             orgPolicies[changes[i].index].requiredConfirmations = changes[i].requiredConfirmations;
         }
@@ -140,20 +144,32 @@ contract OrgValidatorCore {
     function validatePermissionsOrg(ConfirmationCount[] memory confirmationCounts) internal view {
         //loop through policy template, then policies and check if they are met
         for (uint256 i = 0; i < policyTemplates[orgPermissions[1]].length; ++i) {
+            bool met;
             for (uint256 j = 0; j < confirmationCounts.length; ++j) {
                 if (confirmationCounts[j].role == policyTemplates[orgPermissions[1]][i].role) {
                     if (confirmationCounts[j].count < policyTemplates[orgPermissions[1]][i].requiredConfirmations) {
                         revert policyNotMet(confirmationCounts[j].role);
                     }
+                    met = true;
+                    break;
                 }
+            }
+            if (!met) {
+                revert policyNotMet(policyTemplates[orgPermissions[1]][i].role);
             }
         }
         for (uint256 i = 0; i < orgPolicies.length; ++i) {
+            bool met;
             for (uint256 j = 0; j < confirmationCounts.length; ++j) {
                 if (confirmationCounts[j].role == orgPolicies[i].role) {
                     if (confirmationCounts[j].count < orgPolicies[i].requiredConfirmations) {
                         revert policyNotMet(confirmationCounts[j].role);
                     }
+                    met = true;
+                    break;
+                }
+                if (!met) {
+                    revert policyNotMet(orgPolicies[i].role);
                 }
             }
         }
@@ -199,28 +215,10 @@ contract OrgValidatorCore {
 
     function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
+
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                console2.logBytes(abi.encode(
-                            keccak256(
-                                bytes("authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)")
-                            ),
-                            address(this),
-                            changes,
-                            signatures[i].actingRole,
-                            signatures[i].signer,
-                            nonces[signatures[i].signer]++
-                        ));
-                console2.logBytes(abi.encode(
-                            keccak256(
-                                bytes("authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)")
-                            ),
-                            address(this),
-                            abi.encode(changes),
-                            signatures[i].actingRole,
-                            signatures[i].signer,
-                            nonces[signatures[i].signer]++
-                        ));
+
                 address recoveredAddress = recoverPermit(abi.encode(changes), "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
                 //check if recovered address is a member of the role that signed
                 if (recoveredAddress != signatures[i].signer) {
@@ -238,30 +236,7 @@ contract OrgValidatorCore {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                address recoveredAddress = 
-                    ecrecover(
-                        keccak256(
-                            abi.encodePacked(
-                                "\x19\x01",
-                                domainSeperator,
-                                keccak256(
-                                    abi.encode(
-                                        keccak256(
-                                            "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)"
-                                        ),
-                                        address(this),
-                                        changes,
-                                        signatures[i].actingRole,
-                                        signatures[i].signer,
-                                        nonces[signatures[i].signer]++
-                                    )
-                                )
-                            )
-                        ),
-                        signatures[i].v,
-                        signatures[i].r,
-                        signatures[i].s
-                    );
+                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
                 }
@@ -277,30 +252,7 @@ contract OrgValidatorCore {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                address recoveredAddress = 
-                    ecrecover(
-                        keccak256(
-                            abi.encodePacked(
-                                "\x19\x01",
-                                domainSeperator,
-                                keccak256(
-                                    abi.encode(
-                                        keccak256(
-                                            "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)"
-                                        ),
-                                        address(this),
-                                        changes,
-                                        signatures[i].actingRole,
-                                        signatures[i].signer,
-                                        nonces[signatures[i].signer]++
-                                    )
-                                )
-                            )
-                        ),
-                        signatures[i].v,
-                        signatures[i].r,
-                        signatures[i].s
-                    );
+                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
                 }
@@ -320,6 +272,11 @@ contract OrgValidatorCore {
 
     function editPermission(Permission[] memory changes, Signature[] memory signatures) public {
         validateAuthorizationPermission(changes, signatures);
-        modifyPermissions(changes);
+        modifyPermissionsOrg(changes);
+    }
+
+    function editPolicy (PolicyChange[] memory changes, Signature[] memory signatures) public {
+        validateAuthorizationPolicy(changes, signatures);
+        modifyPoliciesOrg(changes);
     }
 }
