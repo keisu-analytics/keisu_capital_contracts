@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 import "forge-std/console2.sol";
+
 contract OrgValidatorCore {
     struct Signature {
         uint256 actingRole;
@@ -13,6 +14,11 @@ contract OrgValidatorCore {
         uint128 role;
         uint128 confirmations;
     }
+
+    struct PermissionTemplateChange {
+        uint256 index;
+        Permission[] changes;
+    }
     //optional additional required confirmations from role
     //policy struct is functionally same as permission, but wanted to differentiate
     struct Policy {
@@ -24,6 +30,11 @@ contract OrgValidatorCore {
         uint64 index;
         uint64 role;
         uint64 requiredConfirmations;
+    }
+
+    struct PolicyTemplateChange {
+        uint64 index;
+        PolicyChange[] changes;
     }
     struct Membership {
         address member;
@@ -99,7 +110,15 @@ contract OrgValidatorCore {
         }
     }
 
-    function modifyPoliciesOrg (PolicyChange[] memory changes) internal {
+    function modifyPermissionTemplatesOrg(PermissionTemplateChange[] memory changes) internal {
+        for (uint256 i = 0; i < changes.length; ++i) {
+            for (uint256 j = 0; j < changes[i].changes.length; ++j) {
+                permissionsTemplates[changes[i].index][changes[i].changes[j].role] = changes[i].changes[j].confirmations;
+            }
+        }
+    }
+
+    function modifyPoliciesOrg(PolicyChange[] memory changes) internal {
         for (uint256 i = 0; i < changes.length; ++i) {
             //allocate space in array if needed
             for (uint256 j = orgPolicies.length; j <= changes[i].index; ++j) {
@@ -110,7 +129,20 @@ contract OrgValidatorCore {
         }
     }
 
-
+    function modifyPolicyTemplatesOrg(PolicyTemplateChange[] memory changes) internal {
+        for (uint256 i = 0; i < changes.length; ++i) {
+            for (uint256 j = 0; j < changes[i].changes.length; ++j) {
+                //allocate space in array if needed
+                for (uint256 k = policyTemplates[changes[i].index].length; k <= changes[i].changes[j].index; ++k) {
+                    policyTemplates[changes[i].index].push(Policy(0, 0));
+                }
+                policyTemplates[changes[i].index][changes[i].changes[j].index].role = changes[i].changes[j].role;
+                policyTemplates[changes[i].index][changes[i].changes[j].index].requiredConfirmations = changes[i]
+                    .changes[j]
+                    .requiredConfirmations;
+            }
+        }
+    }
 
     function isMember(uint256 _role, address _member) public view returns (bool) {
         return roleMemberships[_role][_member];
@@ -185,41 +217,46 @@ contract OrgValidatorCore {
         }
         revert insufficientConfirmations();
     }
-    function recoverPermit(bytes memory changes, string memory methodString, Signature memory signature) internal returns (address) {
+
+    function recoverPermit(
+        bytes memory changes,
+        string memory methodString,
+        Signature memory signature
+    ) internal returns (address) {
         return (
-        ecrecover(
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    domainSeperator,
-                    keccak256(
-                        abi.encode(
-                            keccak256(
-                                bytes(methodString)
-                            ),
-                            address(this),
-                            changes,
-                            signature.actingRole,
-                            signature.signer,
-                            nonces[signature.signer]++
+            ecrecover(
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        domainSeperator,
+                        keccak256(
+                            abi.encode(
+                                keccak256(bytes(methodString)),
+                                address(this),
+                                changes,
+                                signature.actingRole,
+                                signature.signer,
+                                nonces[signature.signer]++
+                            )
                         )
                     )
-                )
-            ),
-            signature.v,
-            signature.r,
-            signature.s
-        )
-    );       
+                ),
+                signature.v,
+                signature.r,
+                signature.s
+            )
+        );
     }
 
     function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
-
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-
-                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
+                address recoveredAddress = recoverPermit(
+                    abi.encode(changes),
+                    "authorizeMembershipChanges(address targetOrg,Membership[] changes,uint256 actingRole,address signer,uint256 nonce)",
+                    signatures[i]
+                );
                 //check if recovered address is a member of the role that signed
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
@@ -236,7 +273,11 @@ contract OrgValidatorCore {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
+                address recoveredAddress = recoverPermit(
+                    abi.encode(changes),
+                    "authorizePermissionChanges(address targetOrg,Permission[] changes,uint256 actingRole,address signer,uint256 nonce)",
+                    signatures[i]
+                );
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
                 }
@@ -246,13 +287,17 @@ contract OrgValidatorCore {
             }
             validatePermissionsOrg(getRoleCounts(signatures));
         }
-    }    
+    }
 
     function validateAuthorizationPolicy(PolicyChange[] memory changes, Signature[] memory signatures) public {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
-                address recoveredAddress = recoverPermit(abi.encode(changes), "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)", signatures[i]);
+                address recoveredAddress = recoverPermit(
+                    abi.encode(changes),
+                    "authorizePolicyChanges(address targetOrg,PolicyChange[] changes,uint256 actingRole,address signer,uint256 nonce)",
+                    signatures[i]
+                );
                 if (recoveredAddress != signatures[i].signer) {
                     revert invalidSignature();
                 }
@@ -262,7 +307,50 @@ contract OrgValidatorCore {
             }
             validatePermissionsOrg(getRoleCounts(signatures));
         }
+    }
 
+    function validateAuthorizationPermissionTemplate(PermissionTemplateChange[] memory changes, Signature[] memory signatures)
+        public
+    {
+        unchecked {
+            //validate and recover addresses from signatures
+            for (uint256 i = 0; i < signatures.length; ++i) {
+                address recoveredAddress = recoverPermit(
+                    abi.encode(changes),
+                    "authorizePermissionTemplateChanges(address targetOrg,PermissionTemplateChange[] changes,uint256 actingRole,address signer,uint256 nonce)",
+                    signatures[i]
+                );
+                if (recoveredAddress != signatures[i].signer) {
+                    revert invalidSignature();
+                }
+                if (!isMember(signatures[i].actingRole, signatures[i].signer)) {
+                    revert invalidRole();
+                }
+            }
+            validatePermissionsOrg(getRoleCounts(signatures));
+        }
+    }
+
+    function validateAuthorizationPolicyTemplate(PolicyTemplateChange[] memory changes, Signature[] memory signatures)
+        public
+    {
+        unchecked {
+            //validate and recover addresses from signatures
+            for (uint256 i = 0; i < signatures.length; ++i) {
+                address recoveredAddress = recoverPermit(
+                    abi.encode(changes),
+                    "authorizePolicyTemplateChanges(address targetOrg,PolicyTemplateChange[] changes,uint256 actingRole,address signer,uint256 nonce)",
+                    signatures[i]
+                );
+                if (recoveredAddress != signatures[i].signer) {
+                    revert invalidSignature();
+                }
+                if (!isMember(signatures[i].actingRole, signatures[i].signer)) {
+                    revert invalidRole();
+                }
+            }
+            validatePermissionsOrg(getRoleCounts(signatures));
+        }
     }
 
     function editMembership(Membership[] memory changes, Signature[] memory signatures) public {
@@ -275,8 +363,20 @@ contract OrgValidatorCore {
         modifyPermissionsOrg(changes);
     }
 
-    function editPolicy (PolicyChange[] memory changes, Signature[] memory signatures) public {
+    function editPermissionTemplate(PermissionTemplateChange[] memory changes, Signature[] memory signatures) public {
+        validateAuthorizationPermissionTemplate(changes, signatures);
+        modifyPermissionTemplatesOrg(changes);
+    }
+
+    function editPolicy(PolicyChange[] memory changes, Signature[] memory signatures) public {
         validateAuthorizationPolicy(changes, signatures);
         modifyPoliciesOrg(changes);
     }
+
+    function editPolicyTemplate(PolicyTemplateChange[] memory changes, Signature[] memory signatures) public {
+        validateAuthorizationPolicyTemplate(changes, signatures);
+        modifyPolicyTemplatesOrg(changes);
+    }
+
+
 }
