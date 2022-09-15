@@ -83,6 +83,32 @@ contract OrgValidatorCoreTest is Test {
             );
     }
 
+    function getMessagePermissionTemplate(
+        OrgValidatorCore.PermissionTemplateChange[] memory changes,
+        uint256 privateKey,
+        uint256 role
+    ) public returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    validator.domainSeperator(),
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                "authorizePermissionTemplateChanges(address targetOrg,PermissionTemplateChange[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                            ),
+                            address(validator),
+                            abi.encode(changes),
+                            uint256(role),
+                            vm.addr(privateKey),
+                            validator.nonces(vm.addr(privateKey))
+                        )
+                    )
+                )
+            );
+    }
+
     function getMessagePolicy(
         OrgValidatorCore.PolicyChange[] memory changes,
         uint256 privateKey,
@@ -108,6 +134,33 @@ contract OrgValidatorCoreTest is Test {
                 )
             );
     }
+
+    function getMessagePolicyTemplate(
+        OrgValidatorCore.PolicyTemplateChange[] memory changes,
+        uint256 privateKey,
+        uint256 role
+    ) public returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    validator.domainSeperator(),
+                    keccak256(
+                        abi.encode(
+                            keccak256(
+                                "authorizePolicyTemplateChanges(address targetOrg,PolicyTemplateChange[] changes,uint256 actingRole,address signer,uint256 nonce)"
+                            ),
+                            address(validator),
+                            abi.encode(changes),
+                            uint256(role),
+                            vm.addr(privateKey),
+                            validator.nonces(vm.addr(privateKey))
+                        )
+                    )
+                )
+            );
+    }
+
     function testSanity() public {
         assertEq(validator.orgName(), "OrgName");
     }
@@ -152,9 +205,9 @@ contract OrgValidatorCoreTest is Test {
         for (uint256 i = 0; i < 4; i++) {
             (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessagePermission(changes, i + 7, 5));
             signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
-        }        
+        }
         validator.editPermission(changes, signatures);
-        assertEq(validator.orgPermissions(100000), 1);        
+        assertEq(validator.orgPermissions(100000), 1);
     }
 
     function test1of1PolicyEdit() public {
@@ -168,4 +221,75 @@ contract OrgValidatorCoreTest is Test {
         //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
         OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
     }
+
+    function test4of4PolicyEdit() public {
+        OrgValidatorCore.PolicyChange[] memory changes = new OrgValidatorCore.PolicyChange[](1);
+        changes[0] = OrgValidatorCore.PolicyChange(0, 100000, 1);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessagePolicy(changes, i + 7, 5));
+            signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
+        }
+        validator.editPolicy(changes, signatures);
+        vm.expectRevert(abi.encodeWithSelector(OrgValidatorCore.policyNotMet.selector, 100000));
+        //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
+        OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
+    }
+
+    function test1of1PermissionTemplateEdit() public {
+        OrgValidatorCore.Permission[] memory changes0 = new OrgValidatorCore.Permission[](1);
+        changes0[0] = OrgValidatorCore.Permission(100000, 1);
+        OrgValidatorCore.PermissionTemplateChange[] memory changes = new OrgValidatorCore.PermissionTemplateChange[](1);
+        changes[0] = OrgValidatorCore.PermissionTemplateChange(0, changes0);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, getMessagePermissionTemplate(changes, 1, 2));
+        signatures[0] = OrgValidatorCore.Signature(2, vm.addr(1), v, r, s);
+        validator.editPermissionTemplate(changes, signatures);
+        assertEq(validator.permissionsTemplates(0, 100000), 1);
+    }
+
+    function test4of4PermissionTemplateEdit() public {
+        OrgValidatorCore.Permission[] memory changes0 = new OrgValidatorCore.Permission[](1);
+        changes0[0] = OrgValidatorCore.Permission(100000, 1);
+        OrgValidatorCore.PermissionTemplateChange[] memory changes = new OrgValidatorCore.PermissionTemplateChange[](1);
+        changes[0] = OrgValidatorCore.PermissionTemplateChange(0, changes0);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessagePermissionTemplate(changes, i + 7, 5));
+            signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
+        }
+        validator.editPermissionTemplate(changes, signatures);
+        assertEq(validator.permissionsTemplates(0, 100000), 1);
+    }
+
+    function test1of1PolicyTemplateEdit() public {
+        OrgValidatorCore.PolicyChange[] memory changes0 = new OrgValidatorCore.PolicyChange[](1);
+        changes0[0] = OrgValidatorCore.PolicyChange(0, 100000, 1);
+        OrgValidatorCore.PolicyTemplateChange[] memory changes = new OrgValidatorCore.PolicyTemplateChange[](1);
+        changes[0] = OrgValidatorCore.PolicyTemplateChange(0, changes0);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, getMessagePolicyTemplate(changes, 1, 2));
+        signatures[0] = OrgValidatorCore.Signature(2, vm.addr(1), v, r, s);
+        validator.editPolicyTemplate(changes, signatures);
+        vm.expectRevert(abi.encodeWithSelector(OrgValidatorCore.policyNotMet.selector, 100000));
+        //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
+        OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
+    }
+
+    function test4of4PolicyTemplateEdit() public {
+        OrgValidatorCore.PolicyChange[] memory changes0 = new OrgValidatorCore.PolicyChange[](1);
+        changes0[0] = OrgValidatorCore.PolicyChange(0, 100000, 1);
+        OrgValidatorCore.PolicyTemplateChange[] memory changes = new OrgValidatorCore.PolicyTemplateChange[](1);
+        changes[0] = OrgValidatorCore.PolicyTemplateChange(0, changes0);
+        OrgValidatorCore.Signature[] memory signatures = new OrgValidatorCore.Signature[](4);
+        for (uint256 i = 0; i < 4; i++) {
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(i + 7, getMessagePolicyTemplate(changes, i + 7, 5));
+            signatures[i] = OrgValidatorCore.Signature(5, vm.addr(i + 7), v, r, s);
+        }
+        validator.editPolicyTemplate(changes, signatures);
+        vm.expectRevert(abi.encodeWithSelector(OrgValidatorCore.policyNotMet.selector, 100000));
+        //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
+        OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
+    }
+
 }
