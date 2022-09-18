@@ -13,7 +13,9 @@ Compile and test
 
 Deploy factory contracts (replace GOERLI with network of choice)
 
-`forge script script/DeployFactory.s.sol:DeployScript --rpc-url $GOERLI_RPC_URL --broadcast`
+`source .env`
+
+`forge script script/DeployFactory.s.sol:DeployScript --rpc-url $GOERLI_RPC_URL --broadcast -vvvv`
 
 ## Environment Variables
 
