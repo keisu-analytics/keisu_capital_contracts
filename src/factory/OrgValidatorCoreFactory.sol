@@ -6,7 +6,7 @@ import "../core/OrgValidatorCore.sol";
 contract OrgValidatorCoreFactory {
     address public implementation;
 
-    event OrgValidatorCoreCreated(address indexed orgValidatorCore);
+    event OrgValidatorCoreCreated(address indexed orgValidatorCore, string indexed name, OrgValidatorCore.Membership[] _roleMemberships, OrgValidatorCore.Permission[] _orgPermissions);
 
     constructor() payable {
         implementation = address(new OrgValidatorCore());
@@ -19,7 +19,7 @@ contract OrgValidatorCoreFactory {
     ) public returns (address) {
         OrgValidatorCore proxy = OrgValidatorCore(address(new TransparentStaticProxy(implementation)));
         proxy.initialize(_roleMemberships, _orgPermissions, _orgName);
-        emit OrgValidatorCoreCreated(address(proxy));
+        emit OrgValidatorCoreCreated(address(proxy), _orgName, _roleMemberships, _orgPermissions);
         return address(proxy);
     }
 }
