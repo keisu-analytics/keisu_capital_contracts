@@ -6,16 +6,16 @@ import "../core/SafeCore.sol";
 contract SafeCoreFactory {
     address public implementation;
 
-    event SafeCoreCreated(address indexed safeCore);
+    event SafeCoreCreated(address indexed safeCore, string indexed name);
 
     constructor() payable {
         implementation = address(new SafeCore());
     }
 
-    function createSafeCore(address org) public returns (address) {
+    function createSafeCore(address org, string memory name) public returns (address) {
         SafeCore proxy = SafeCore(address(new TransparentStaticProxy(implementation)));
-        proxy.initialize(org);
-        emit SafeCoreCreated(address(proxy));
+        proxy.initialize(org, name);
+        emit SafeCoreCreated(address(proxy), name);
         return address(proxy);
     }
 }

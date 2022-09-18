@@ -21,9 +21,10 @@ interface IOrgValidatorCore {
 
 contract SafeCore {
     IOrgValidatorCore public validator;
-
-    function initialize(address _validator) public {
+    string public name;
+    function initialize(address _validator, string memory _name) public {
         validator = IOrgValidatorCore(_validator);
+        name = _name;
     }
 
     function execTransaction(IOrgValidatorCore.Transaction memory transaction, IOrgValidatorCore.Signature[] memory signatures)

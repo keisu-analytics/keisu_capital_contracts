@@ -27,7 +27,7 @@ contract SafeCoreTest is Test {
         }
         validator = OrgValidatorCore(factoryValidator.createOrgValidatorCore(memberships, permissions, "OrgName"));
         factorySafe = new SafeCoreFactory();
-        safe = SafeCore(factorySafe.createSafeCore(address(validator)));
+        safe = SafeCore(factorySafe.createSafeCore(address(validator), "SafeName"));
         vm.deal(address(safe), 1 ether);
     }
 
