@@ -212,7 +212,7 @@ contract OrgValidatorCoreTest is Test {
                 )
             );
     }
-    
+
     function getMessageTransaction(
         OrgValidatorCore.Transaction memory transaction,
         uint256 privateKey,
@@ -238,6 +238,7 @@ contract OrgValidatorCoreTest is Test {
                 )
             );
     }
+
     function testSanity() public {
         assertEq(validator.orgName(), "OrgName");
     }
@@ -368,6 +369,7 @@ contract OrgValidatorCoreTest is Test {
         //call function with CALL instead of JUMP since expectRevert listens to the NEXT call
         OrgValidatorCoreTest(address(this)).test1of1PermissionEdit();
     }
+
     function test1of1SafePermissionEdit() public {
         OrgValidatorCore.Permission[] memory changes = new OrgValidatorCore.Permission[](1);
         changes[0] = OrgValidatorCore.Permission(100000, 1);
@@ -377,7 +379,7 @@ contract OrgValidatorCoreTest is Test {
         validator.editPermissionSafe(changes, signatures, address(this));
         assertEq(validator.safePermissions(address(this), 100000), 1);
     }
-    
+
     function test4of4SafePermissionEdit() public {
         OrgValidatorCore.Permission[] memory changes = new OrgValidatorCore.Permission[](1);
         changes[0] = OrgValidatorCore.Permission(100000, 1);

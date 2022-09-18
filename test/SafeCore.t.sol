@@ -6,11 +6,13 @@ import "../src/core/SafeCore.sol";
 import "../src/core/OrgValidatorCore.sol";
 import "../src/factory/SafeCoreFactory.sol";
 import "../src/factory/OrgValidatorCoreFactory.sol";
+
 contract SafeCoreTest is Test {
     OrgValidatorCoreFactory public factoryValidator;
     SafeCoreFactory public factorySafe;
     OrgValidatorCore public validator;
     SafeCore public safe;
+
     function setUp() public {
         factoryValidator = new OrgValidatorCoreFactory();
         OrgValidatorCore.Membership[] memory memberships = new OrgValidatorCore.Membership[](10);
@@ -28,6 +30,7 @@ contract SafeCoreTest is Test {
         safe = SafeCore(factorySafe.createSafeCore(address(validator)));
         vm.deal(address(safe), 1 ether);
     }
+
     function getMessageTransaction(
         IOrgValidatorCore.Transaction memory transaction,
         uint256 privateKey,
@@ -53,7 +56,7 @@ contract SafeCoreTest is Test {
                 )
             );
     }
-    
+
     function test1of1Transaction() public {
         IOrgValidatorCore.Transaction memory transaction = IOrgValidatorCore.Transaction(vm.addr(1), 1 ether, "");
         IOrgValidatorCore.Signature[] memory signatures = new IOrgValidatorCore.Signature[](1);

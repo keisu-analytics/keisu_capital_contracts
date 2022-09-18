@@ -246,7 +246,9 @@ contract OrgValidatorCore {
             bool met;
             for (uint256 j = 0; j < confirmationCounts.length; ++j) {
                 if (confirmationCounts[j].role == policyTemplates[safePermissions[msg.sender][1]][i].role) {
-                    if (confirmationCounts[j].count < policyTemplates[safePermissions[msg.sender][1]][i].requiredConfirmations) {
+                    if (
+                        confirmationCounts[j].count < policyTemplates[safePermissions[msg.sender][1]][i].requiredConfirmations
+                    ) {
                         revert policyNotMet(confirmationCounts[j].role);
                     }
                     met = true;
@@ -276,7 +278,8 @@ contract OrgValidatorCore {
         //check template first, then additional permissions
         for (uint256 i = 0; i < confirmationCounts.length; ++i) {
             if (
-                confirmationCounts[i].count >= permissionsTemplates[safePermissions[msg.sender][0]][confirmationCounts[i].role] ||
+                confirmationCounts[i].count >=
+                permissionsTemplates[safePermissions[msg.sender][0]][confirmationCounts[i].role] ||
                 confirmationCounts[i].count >= safePermissions[msg.sender][confirmationCounts[i].role]
             ) {
                 return;
@@ -344,7 +347,7 @@ contract OrgValidatorCore {
                 signature.s
             )
         );
-    }    
+    }
 
     function validateAuthorizationMembership(Membership[] memory changes, Signature[] memory signatures) internal {
         unchecked {
@@ -387,7 +390,11 @@ contract OrgValidatorCore {
         }
     }
 
-    function validateAuthorizationSafePermission(Permission[] memory changes, Signature[] memory signatures, address safe) internal {
+    function validateAuthorizationSafePermission(
+        Permission[] memory changes,
+        Signature[] memory signatures,
+        address safe
+    ) internal {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
@@ -428,7 +435,11 @@ contract OrgValidatorCore {
         }
     }
 
-    function validateAuthorizationSafePolicy(PolicyChange[] memory changes, Signature[] memory signatures, address safe) internal {
+    function validateAuthorizationSafePolicy(
+        PolicyChange[] memory changes,
+        Signature[] memory signatures,
+        address safe
+    ) internal {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
@@ -471,7 +482,9 @@ contract OrgValidatorCore {
         }
     }
 
-    function validateAuthorizationPolicyTemplate(PolicyTemplateChange[] memory changes, Signature[] memory signatures) internal {
+    function validateAuthorizationPolicyTemplate(PolicyTemplateChange[] memory changes, Signature[] memory signatures)
+        internal
+    {
         unchecked {
             //validate and recover addresses from signatures
             for (uint256 i = 0; i < signatures.length; ++i) {
@@ -522,7 +535,11 @@ contract OrgValidatorCore {
         modifyPermissionsOrg(changes);
     }
 
-    function editPermissionSafe(Permission[] memory changes, Signature[] memory signatures, address safe) public {
+    function editPermissionSafe(
+        Permission[] memory changes,
+        Signature[] memory signatures,
+        address safe
+    ) public {
         validateAuthorizationSafePermission(changes, signatures, safe);
         modifyPermissionsSafe(changes);
     }
@@ -537,7 +554,11 @@ contract OrgValidatorCore {
         modifyPoliciesOrg(changes);
     }
 
-    function editPolicySafe(PolicyChange[] memory changes, Signature[] memory signatures, address safe) public {
+    function editPolicySafe(
+        PolicyChange[] memory changes,
+        Signature[] memory signatures,
+        address safe
+    ) public {
         validateAuthorizationSafePolicy(changes, signatures, safe);
         modifyPoliciesSafe(changes);
     }
