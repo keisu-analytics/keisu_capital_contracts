@@ -6,6 +6,8 @@ import "../core/SafeCore.sol";
 contract SafeCoreFactory {
     address public implementation;
 
+    event SafeCoreCreated(address indexed safeCore);
+
     constructor() payable {
         implementation = address(new SafeCore());
     }
@@ -13,6 +15,7 @@ contract SafeCoreFactory {
     function createSafeCore(address org) public returns (address) {
         SafeCore proxy = SafeCore(address(new TransparentStaticProxy(implementation)));
         proxy.initialize(org);
+        emit SafeCoreCreated(address(proxy));
         return address(proxy);
     }
 }
