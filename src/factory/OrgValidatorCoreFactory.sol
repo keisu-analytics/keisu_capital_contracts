@@ -6,7 +6,7 @@ import "../core/OrgValidatorCore.sol";
 contract OrgValidatorCoreFactory {
     address public implementation;
 
-    event OrgValidatorCoreCreated(address indexed orgValidatorCore, string indexed name, OrgValidatorCore.Membership[] _roleMemberships, OrgValidatorCore.Permission[] _orgPermissions);
+    event OrgValidatorCoreCreated(address indexed orgValidatorCore, string name, OrgValidatorCore.Membership[] _roleMemberships, OrgValidatorCore.Permission[] _orgPermissions);
 
     constructor() payable {
         implementation = address(new OrgValidatorCore());

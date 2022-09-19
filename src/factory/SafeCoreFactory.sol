@@ -6,7 +6,7 @@ import "../core/SafeCore.sol";
 contract SafeCoreFactory {
     address public implementation;
 
-    event SafeCoreCreated(address indexed safeCore, string indexed name);
+    event SafeCoreCreated(address indexed safeCore, string name);
 
     constructor() payable {
         implementation = address(new SafeCore());
