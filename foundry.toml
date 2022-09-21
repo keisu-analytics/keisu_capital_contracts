@@ -4,6 +4,7 @@ out = 'out'
 libs = ['lib']
 solc = "0.8.17"
 optimizer_runs = 999999
+via_ir = true
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 [rpc_endpoints]
 goerli = "${GOERLI_RPC_URL}"
