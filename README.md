@@ -15,7 +15,7 @@ Deploy factory contracts (replace GOERLI with network of choice)
 
 `source .env`
 
-`forge script script/DeployFactory.s.sol:DeployScript --rpc-url $GOERLI_RPC_URL --broadcast -vvvv`
+`forge script script/DeployFactory.s.sol:DeployScript --rpc-url $GOERLI_RPC_URL --broadcast --verify -vvvv`
 
 ## Environment Variables
 
@@ -24,6 +24,8 @@ Deploy factory contracts (replace GOERLI with network of choice)
 `GOERLI_RPC_URL` - RPC URL for the Goerli Testnet (5)
 
 `PRIVATE_KEY` - Private key of the deployer account
+
+`ETHERSCAN_API_KEY` - Etherscan API key for verifying contracts
 
 ## Contracts
 
