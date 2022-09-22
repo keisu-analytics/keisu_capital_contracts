@@ -62,9 +62,7 @@ contract OrgValidatorCore {
     //prevent replay
     mapping(address => uint256) public nonces;
     mapping(uint256 => mapping(uint256 => uint256)) public permissionsTemplates;
-    uint256 public permissionTemplatePointer;
     mapping(uint256 => Policy[]) public policyTemplates;
-    uint256 public policyTemplatePointer;
 
     error previouslyInitialized();
     error invalidSignature();
