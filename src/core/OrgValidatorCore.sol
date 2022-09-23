@@ -64,6 +64,14 @@ contract OrgValidatorCore {
     mapping(uint256 => mapping(uint256 => uint256)) public permissionsTemplates;
     mapping(uint256 => Policy[]) public policyTemplates;
 
+    event MembershipEdit(Membership change);
+    event PermissionTemplateEdit(PermissionTemplateChange change);
+    event PolicyTemplateEdit(PolicyTemplateChange change);
+    event OrgPermissionEdit(Permission change);
+    event OrgPolicyEdit(PolicyChange change);
+    event SafePermissionEdit(address safe, Permission change);
+    event SafePolicyEdit(address safe, PolicyChange change);
+
     error previouslyInitialized();
     error invalidSignature();
     error invalidRole();
@@ -104,18 +112,21 @@ contract OrgValidatorCore {
             roleMemberships[_roleMemberships[i].role][_roleMemberships[i].member] = !roleMemberships[_roleMemberships[i].role][
                 _roleMemberships[i].member
             ];
+            emit MembershipEdit(_roleMemberships[i]);
         }
     }
 
     function modifyPermissionsOrg(Permission[] memory changes) internal {
         for (uint256 i = 0; i < changes.length; ++i) {
             orgPermissions[changes[i].role] = changes[i].confirmations;
+            emit OrgPermissionEdit(changes[i]);
         }
     }
 
     function modifyPermissionsSafe(Permission[] memory changes) internal {
         for (uint256 i = 0; i < changes.length; ++i) {
             safePermissions[msg.sender][changes[i].role] = changes[i].confirmations;
+            emit SafePermissionEdit(msg.sender, changes[i]);
         }
     }
 
@@ -123,6 +134,7 @@ contract OrgValidatorCore {
         for (uint256 i = 0; i < changes.length; ++i) {
             for (uint256 j = 0; j < changes[i].changes.length; ++j) {
                 permissionsTemplates[changes[i].index][changes[i].changes[j].role] = changes[i].changes[j].confirmations;
+                emit PermissionTemplateEdit(changes[i]);
             }
         }
     }
@@ -135,6 +147,7 @@ contract OrgValidatorCore {
             }
             orgPolicies[changes[i].index].role = changes[i].role;
             orgPolicies[changes[i].index].requiredConfirmations = changes[i].requiredConfirmations;
+            emit OrgPolicyEdit(changes[i]);
         }
     }
 
@@ -146,6 +159,7 @@ contract OrgValidatorCore {
             }
             safePolicies[msg.sender][changes[i].index].role = changes[i].role;
             safePolicies[msg.sender][changes[i].index].requiredConfirmations = changes[i].requiredConfirmations;
+            emit SafePolicyEdit(msg.sender, changes[i]);
         }
     }
 
@@ -160,6 +174,7 @@ contract OrgValidatorCore {
                 policyTemplates[changes[i].index][changes[i].changes[j].index].requiredConfirmations = changes[i]
                     .changes[j]
                     .requiredConfirmations;
+                emit PolicyTemplateEdit(changes[i]);
             }
         }
     }

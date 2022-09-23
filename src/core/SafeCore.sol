@@ -22,6 +22,9 @@ interface IOrgValidatorCore {
 contract SafeCore {
     IOrgValidatorCore public validator;
     string public name;
+
+    event TransactionConfirmed(IOrgValidatorCore.Transaction transaction, IOrgValidatorCore.Signature[] signatures);
+
     function initialize(address _validator, string memory _name) public {
         validator = IOrgValidatorCore(_validator);
         name = _name;
@@ -32,5 +35,6 @@ contract SafeCore {
     {
         validator.validateAuthorizationTransaction(transaction, signatures);
         transaction.to.call{value: transaction.value}(transaction.data);
+        emit TransactionConfirmed(transaction, signatures);
     }
 }
